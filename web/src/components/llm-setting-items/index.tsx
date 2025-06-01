@@ -16,9 +16,10 @@ interface IProps {
   prefix?: string;
   formItemLayout?: any;
   handleParametersChange?(value: ModelVariableType): void;
+  onChange?(value: string, option: any): void;
 }
 
-const LlmSettingItems = ({ prefix, formItemLayout = {} }: IProps) => {
+const LlmSettingItems = ({ prefix, formItemLayout = {}, onChange }: IProps) => {
   const form = Form.useFormInstance();
   const { t } = useTranslate('chat');
   const parameterOptions = Object.values(ModelVariableType).map((x) => ({
@@ -58,6 +59,7 @@ const LlmSettingItems = ({ prefix, formItemLayout = {} }: IProps) => {
           options={modelOptions}
           showSearch
           popupMatchSelectWidth={false}
+          onChange={onChange}
         />
       </Form.Item>
       <div className="border rounded-md">
@@ -265,54 +267,6 @@ const LlmSettingItems = ({ prefix, formItemLayout = {} }: IProps) => {
                           min={0}
                           step={0.01}
                           disabled={disabled}
-                        />
-                      </Form.Item>
-                    </>
-                  );
-                }}
-              </Form.Item>
-            </Flex>
-          </Form.Item>
-          <Form.Item
-            label={t('maxTokens')}
-            tooltip={t('maxTokensTip')}
-            {...formItemLayout}
-          >
-            <Flex gap={20} align="center">
-              <Form.Item
-                name={'maxTokensEnabled'}
-                valuePropName="checked"
-                noStyle
-              >
-                <Switch size="small" />
-              </Form.Item>
-              <Form.Item noStyle dependencies={['maxTokensEnabled']}>
-                {({ getFieldValue }) => {
-                  const disabled = !getFieldValue('maxTokensEnabled');
-
-                  return (
-                    <>
-                      <Flex flex={1}>
-                        <Form.Item
-                          name={[...memorizedPrefix, 'max_tokens']}
-                          noStyle
-                        >
-                          <Slider
-                            className={styles.variableSlider}
-                            max={128000}
-                            disabled={disabled}
-                          />
-                        </Form.Item>
-                      </Flex>
-                      <Form.Item
-                        name={[...memorizedPrefix, 'max_tokens']}
-                        noStyle
-                      >
-                        <InputNumber
-                          disabled={disabled}
-                          className={styles.sliderInputNumber}
-                          max={128000}
-                          min={0}
                         />
                       </Form.Item>
                     </>

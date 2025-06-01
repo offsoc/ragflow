@@ -1,85 +1,103 @@
-import { useTranslate } from '@/hooks/common-hooks';
-import { MinusCircleOutlined, PlusOutlined } from '@ant-design/icons';
-import { Button, Form, Input } from 'antd';
-import { IOperatorForm } from '../../interface';
+import { FormContainer } from '@/components/form-container';
+import { PromptEditor } from '@/components/prompt-editor';
+import { BlockButton, Button } from '@/components/ui/button';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { X } from 'lucide-react';
+import { useFieldArray, useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
+import { z } from 'zod';
+import { INextOperatorForm } from '../../interface';
+import { useValues } from './use-values';
+import { useWatchFormChange } from './use-watch-change';
 
-import styles from './index.less';
+const MessageForm = ({ node }: INextOperatorForm) => {
+  const { t } = useTranslation();
 
-const formItemLayout = {
-  labelCol: {
-    sm: { span: 6 },
-  },
-  wrapperCol: {
-    sm: { span: 18 },
-  },
-};
+  const values = useValues(node);
 
-const formItemLayoutWithOutLabel = {
-  wrapperCol: {
-    sm: { span: 18, offset: 6 },
-  },
-};
+  const FormSchema = z.object({
+    content: z
+      .array(
+        z.object({
+          value: z.string(),
+        }),
+      )
+      .optional(),
+  });
 
-const MessageForm = ({ onValuesChange, form }: IOperatorForm) => {
-  const { t } = useTranslate('flow');
+  const form = useForm({
+    defaultValues: values,
+    resolver: zodResolver(FormSchema),
+  });
+
+  useWatchFormChange(node?.id, form);
+
+  const { fields, append, remove } = useFieldArray({
+    name: 'content',
+    control: form.control,
+  });
 
   return (
-    <Form
-      name="basic"
-      {...formItemLayoutWithOutLabel}
-      onValuesChange={onValuesChange}
-      autoComplete="off"
-      form={form}
-    >
-      <Form.List name="messages">
-        {(fields, { add, remove }, {}) => (
-          <>
-            {fields.map((field, index) => (
-              <Form.Item
-                {...(index === 0 ? formItemLayout : formItemLayoutWithOutLabel)}
-                label={index === 0 ? t('msg') : ''}
-                required={false}
-                key={field.key}
-              >
-                <Form.Item
-                  {...field}
-                  validateTrigger={['onChange', 'onBlur']}
-                  rules={[
-                    {
-                      required: true,
-                      whitespace: true,
-                      message: t('messageMsg'),
-                    },
-                  ]}
-                  noStyle
-                >
-                  <Input.TextArea
-                    rows={4}
-                    placeholder={t('messagePlaceholder')}
-                    style={{ width: '80%' }}
+    <Form {...form}>
+      <form
+        className="space-y-5 px-5 "
+        autoComplete="off"
+        onSubmit={(e) => {
+          e.preventDefault();
+        }}
+      >
+        <FormContainer>
+          <FormItem>
+            <FormLabel tooltip={t('flow.msgTip')}>{t('flow.msg')}</FormLabel>
+            <div className="space-y-4">
+              {fields.map((field, index) => (
+                <div key={field.id} className="flex items-start gap-2">
+                  <FormField
+                    control={form.control}
+                    name={`content.${index}.value`}
+                    render={({ field }) => (
+                      <FormItem className="flex-1">
+                        <FormControl>
+                          {/* <Textarea {...field}> </Textarea> */}
+                          <PromptEditor
+                            {...field}
+                            placeholder={t('flow.messagePlaceholder')}
+                          ></PromptEditor>
+                        </FormControl>
+                      </FormItem>
+                    )}
                   />
-                </Form.Item>
-                {fields.length > 1 ? (
-                  <MinusCircleOutlined
-                    className={styles.dynamicDeleteButton}
-                    onClick={() => remove(field.name)}
-                  />
-                ) : null}
-              </Form.Item>
-            ))}
-            <Form.Item>
-              <Button
-                type="dashed"
-                onClick={() => add()}
-                style={{ width: '80%' }}
-                icon={<PlusOutlined />}
+                  {fields.length > 1 && (
+                    <Button
+                      type="button"
+                      variant={'ghost'}
+                      onClick={() => remove(index)}
+                    >
+                      <X />
+                    </Button>
+                  )}
+                </div>
+              ))}
+
+              <BlockButton
+                type="button"
+                onClick={() => append({ value: '' })} // "" will cause the inability to add, refer to: https://github.com/orgs/react-hook-form/discussions/8485#discussioncomment-2961861
               >
-                {t('addMessage')}
-              </Button>
-            </Form.Item>
-          </>
-        )}
-      </Form.List>
+                {t('flow.addMessage')}
+              </BlockButton>
+            </div>
+            <FormMessage />
+          </FormItem>
+        </FormContainer>
+      </form>
     </Form>
   );
 };

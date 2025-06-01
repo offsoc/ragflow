@@ -83,7 +83,7 @@ app.errorhandler(Exception)(server_error_response)
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 app.config["MAX_CONTENT_LENGTH"] = int(
-    os.environ.get("MAX_CONTENT_LENGTH", 128 * 1024 * 1024)
+    os.environ.get("MAX_CONTENT_LENGTH", 1024 * 1024 * 1024)
 )
 
 Session(app)
@@ -107,7 +107,7 @@ def search_pages_path(pages_dir):
 def register_page(page_path):
     path = f"{page_path}"
 
-    page_name = page_path.stem.rstrip("_app")
+    page_name = page_path.stem.removesuffix("_app")
     module_name = ".".join(
         page_path.parts[page_path.parts.index("api"): -1] + (page_name,)
     )

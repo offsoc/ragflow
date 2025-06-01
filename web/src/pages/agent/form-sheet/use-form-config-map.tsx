@@ -1,3 +1,5 @@
+import { LlmSettingSchema } from '@/components/llm-setting-items/next';
+import { CodeTemplateStrMap, ProgrammingLanguage } from '@/constants/agent';
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { Operator } from '../constant';
@@ -9,6 +11,7 @@ import BaiduForm from '../form/baidu-form';
 import BeginForm from '../form/begin-form';
 import BingForm from '../form/bing-form';
 import CategorizeForm from '../form/categorize-form';
+import CodeForm from '../form/code-form';
 import CrawlerForm from '../form/crawler-form';
 import DeepLForm from '../form/deepl-form';
 import DuckDuckGoForm from '../form/duckduckgo-form';
@@ -43,18 +46,27 @@ export function useFormConfigMap() {
       component: BeginForm,
       defaultValues: {},
       schema: z.object({
-        name: z
+        enablePrologue: z.boolean().optional(),
+        prologue: z
           .string()
           .min(1, {
             message: t('common.namePlaceholder'),
           })
-          .trim(),
-        age: z
-          .string()
-          .min(1, {
-            message: t('common.namePlaceholder'),
-          })
-          .trim(),
+          .trim()
+          .optional(),
+        mode: z.string(),
+        query: z
+          .array(
+            z.object({
+              key: z.string(),
+              type: z.string(),
+              value: z.string(),
+              optional: z.boolean(),
+              name: z.string(),
+              options: z.array(z.union([z.number(), z.string(), z.boolean()])),
+            }),
+          )
+          .optional(),
       }),
     },
     [Operator.Retrieval]: {
@@ -100,12 +112,39 @@ export function useFormConfigMap() {
     [Operator.Categorize]: {
       component: CategorizeForm,
       defaultValues: {},
-      schema: z.object({}),
+      schema: z.object({
+        parameter: z.string().optional(),
+        ...LlmSettingSchema,
+        message_history_window_size: z.coerce.number(),
+        items: z.array(
+          z
+            .object({
+              name: z.string().min(1, t('flow.nameMessage')).trim(),
+              description: z.string().optional(),
+              // examples: z
+              //   .array(
+              //     z.object({
+              //       value: z.string(),
+              //     }),
+              //   )
+              //   .optional(),
+            })
+            .optional(),
+        ),
+      }),
     },
     [Operator.Message]: {
       component: MessageForm,
       defaultValues: {},
-      schema: z.object({}),
+      schema: z.object({
+        content: z
+          .array(
+            z.object({
+              value: z.string(),
+            }),
+          )
+          .optional(),
+      }),
     },
     [Operator.Relevant]: {
       component: RelevantForm,
@@ -114,33 +153,85 @@ export function useFormConfigMap() {
     },
     [Operator.RewriteQuestion]: {
       component: RewriteQuestionForm,
+      defaultValues: {
+        message_history_window_size: 6,
+      },
+      schema: z.object({
+        llm_id: z.string(),
+        message_history_window_size: z.number(),
+        language: z.string(),
+      }),
+    },
+    [Operator.Code]: {
+      component: CodeForm,
+      defaultValues: {
+        lang: ProgrammingLanguage.Python,
+        script: CodeTemplateStrMap[ProgrammingLanguage.Python],
+        arguments: [],
+      },
+      schema: z.object({
+        lang: z.string(),
+        script: z.string(),
+        arguments: z.array(
+          z.object({ name: z.string(), component_id: z.string() }),
+        ),
+        return: z.union([
+          z
+            .array(z.object({ name: z.string(), component_id: z.string() }))
+            .optional(),
+          z.object({ name: z.string(), component_id: z.string() }),
+        ]),
+      }),
+    },
+    [Operator.WaitingDialogue]: {
+      component: CodeForm,
       defaultValues: {},
-      schema: z.object({}),
+      schema: z.object({
+        arguments: z.array(
+          z.object({ name: z.string(), component_id: z.string() }),
+        ),
+      }),
     },
     [Operator.Baidu]: {
       component: BaiduForm,
-      defaultValues: {},
-      schema: z.object({}),
+      defaultValues: { top_n: 10 },
+      schema: z.object({ top_n: z.number() }),
     },
     [Operator.DuckDuckGo]: {
       component: DuckDuckGoForm,
-      defaultValues: {},
-      schema: z.object({}),
+      defaultValues: {
+        top_n: 10,
+        channel: 'text',
+      },
+      schema: z.object({
+        top_n: z.number(),
+      }),
     },
     [Operator.KeywordExtract]: {
       component: KeywordExtractForm,
-      defaultValues: {},
-      schema: z.object({}),
+      defaultValues: { top_n: 3 },
+      schema: z.object({
+        llm_id: z.string(),
+        top_n: z.number(),
+      }),
     },
     [Operator.Wikipedia]: {
       component: WikipediaForm,
-      defaultValues: {},
-      schema: z.object({}),
+      defaultValues: {
+        top_n: 10,
+      },
+      schema: z.object({
+        language: z.string(),
+        top_n: z.number(),
+      }),
     },
     [Operator.PubMed]: {
       component: PubMedForm,
-      defaultValues: {},
-      schema: z.object({}),
+      defaultValues: { top_n: 10 },
+      schema: z.object({
+        top_n: z.number(),
+        email: z.string(),
+      }),
     },
     [Operator.ArXiv]: {
       component: ArXivForm,
@@ -180,7 +271,13 @@ export function useFormConfigMap() {
     [Operator.QWeather]: {
       component: QWeatherForm,
       defaultValues: {},
-      schema: z.object({}),
+      schema: z.object({
+        web_apikey: z.string(),
+        lang: z.string(),
+        type: z.string(),
+        user_type: z.string(),
+        time_period: z.string().optional(),
+      }),
     },
     [Operator.ExeSQL]: {
       component: ExeSQLForm,
@@ -194,13 +291,22 @@ export function useFormConfigMap() {
     },
     [Operator.WenCai]: {
       component: WenCaiForm,
-      defaultValues: {},
-      schema: z.object({}),
+      defaultValues: {
+        top_n: 20,
+      },
+      schema: z.object({
+        top_n: z.number(),
+        query_type: z.string(),
+      }),
     },
     [Operator.AkShare]: {
       component: AkShareForm,
-      defaultValues: {},
-      schema: z.object({}),
+      defaultValues: {
+        top_n: 10,
+      },
+      schema: z.object({
+        top_n: z.number(),
+      }),
     },
     [Operator.YahooFinance]: {
       component: YahooFinanceForm,
