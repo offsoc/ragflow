@@ -161,7 +161,7 @@ def rm():
 
 @manager.route("/list", methods=["GET"])  # noqa: F821
 @login_required
-def list_convsersation():
+def list_conversation():
     dialog_id = request.args["dialog_id"]
     try:
         if not DialogService.query(tenant_id=current_user.id, id=dialog_id):
@@ -249,7 +249,7 @@ def completion():
         else:
             answer = None
             for ans in chat(dia, msg, **req):
-                answer = structure_answer(conv, ans, message_id, req["conversation_id"])
+                answer = structure_answer(conv, ans, message_id, conv.id)
                 ConversationService.update_by_id(conv.id, conv.to_dict())
                 break
             return get_json_result(data=answer)
